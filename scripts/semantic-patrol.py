@@ -131,6 +131,21 @@ AUTO_SCHEDULE = {
 TOPIC_ROTATION_FILE = os.path.join(BASE, "curiosity", "topic-rotation.json")
 BONUS_CHANNELS = {k: AUTO_SCHEDULE[k] for k in ("onthisday", "randomwiki", "misconceptions")}
 
+# Cold-start fallback（2026-08-28 加）：用戶第一日夜晚主題工廠未行過 → topic-rotation.json 可能係空。
+# 呢 30 條係通用主題，crawler 讀唔到 json 主題時用呢啲照爬，同時自動寫入 json（self-healing）。
+DEFAULT_TOPICS = [
+    "人工智能與未來科技", "太空探索與天文發現", "海洋生物與深海奧秘",
+    "氣候變化與環境保護", "腦科學與記憶研究", "語言演化與文化",
+    "恐龍與古生物學", "心理學與行為經濟學", "機器人與自動化",
+    "新能源與電池技術", "虛擬實境與元宇宙", "音樂與大腦健康",
+    "動物行為與智慧", "古代文明與考古發現", "食品安全與營養科學",
+    "遊戲設計與玩家心理", "天文物理與黑洞", "生物演化冷知識",
+    "醫學突破與新藥研發", "城市規劃與智慧交通", "機器學習與數據科學",
+    "歷史冷知識與趣聞", "生態系統與生物多樣性", "航天工程與火箭技術",
+    "基因編輯與生物科技", "迷因文化與網絡現象", "極地探索與冰川研究",
+    "未來交通與超迴路", "人工智慧倫理與社會影響", "量子科技與密碼學",
+]
+
 
 def fetch_onthisday(month, day):
     """維基 On This Day：今日歷史事件（中英雙源，並行）→ [(title, link)]"""
@@ -734,20 +749,40 @@ def run_auto_mode(now, now_iso, today, state):
 
 
 def next_rotation_topic():
-    """讀 topic-rotation.json → (topic, index)；index 超出長度重置 0。唔寫檔。"""
+    """讀 topic-rotation.json → (topic, index)；index 超出長度重置 0。
+    2026-08-28：json 空／讀唔到 → fallback 去 DEFAULT_TOPICS（cold-start），並順手寫入 json。"""
     try:
         with open(TOPIC_ROTATION_FILE) as f:
             cfg = json.load(f)
     except Exception as e:
-        print(f"[semantic] topic-rotation.json 讀取失敗: {e}")
-        return None, None
-    rotation = cfg.get("rotation", [])
-    index = cfg.get("index", 0)
+        print(f"[semantic] topic-rotation.json 讀取失敗: {e}（用內置主題）")
+        cfg = None
+    rotation = (cfg or {}).get("rotation", [])
+    index = (cfg or {}).get("index", 0)
     if not rotation:
-        return None, None
+        # Cold-start：內置主題入 json（self-healing），聽日主題工廠會接管補充
+        print("[semantic] topic-rotation.json 空——用內置 30 條通用主題並寫入 json（cold-start 修復）")
+        _write_rotation(DEFAULT_TOPICS, 0)
+        return DEFAULT_TOPICS[0], 0
     if index >= len(rotation):
         index = 0
     return rotation[index], index
+
+
+def _write_rotation(rotation, index):
+    """atomic write topic-rotation.json（fallback 用）。"""
+    cfg = {
+        "version": 2,
+        "description": "主題輪換清單：夜晚主題工廠補充新主題，crawler 順住 rotation[index] 探索。",
+        "rotation": rotation,
+        "index": index,
+        "updatedAt": datetime.date.today().isoformat(),
+        "lastUsed": "",
+    }
+    tmp = TOPIC_ROTATION_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, TOPIC_ROTATION_FILE)
 
 
 def advance_rotation_index():
