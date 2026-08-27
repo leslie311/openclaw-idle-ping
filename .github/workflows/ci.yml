@@ -1,0 +1,53 @@
+# GitHub Actions CI — idle-ping
+# 專業標準（完整版）：
+#   - 兩個 job 並行：lint（ShellCheck + 語法） / test（BATS 19 個測試）
+#   - CI 直接 call Makefile 目標 → 本地同 CI 用同一套命令
+#   - 上傳 TAP 測試報告 artifact（人哋可以下載睇詳細結果）
+# 參考：HackerOne BATS guide + CronGuard best practices
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint & Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Lint（ShellCheck + bash -n + py_compile）
+        run: make lint
+
+  test:
+    name: BATS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install BATS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Run BATS tests（TAP 報告）
+        run: |
+          set -o pipefail
+          bats --tap tests/ | tee tests/report.tap
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bats-tap-report
+          path: tests/report.tap

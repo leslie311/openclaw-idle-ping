@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "主題輪換清單：每晚心跳補充新主題，crawler 順住 rotation[index] 探索，用後 index+1，到尾重置 0",
+  "rotation": [],
+  "index": 0,
+  "updatedAt": "",
+  "lastUsed": ""
+}

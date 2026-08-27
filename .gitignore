@@ -1,0 +1,73 @@
+# idle-ping 開源 repo — .gitignore 草稿
+# 用途：封鎖所有個人 / 運行數據檔案，防止複製時漏咗入 repo
+# 生效：repo init 時改名做 .gitignore
+
+# ===== 私隱紅線：身份同個人設定（永遠唔 commit）=====
+soul/
+SOUL.md
+IDENTITY.md
+USER.md
+MEMORY.md
+AGENTS.md
+TOOLS.md
+HEARTBEAT.md
+CURIOSITY.md
+THINKING.md
+ARCHITECTURE.md
+
+# ===== 對話紀錄 / 記憶 =====
+memory/
+sessions/
+*.jsonl
+
+# ===== 運行數據（curiosity）=====
+curiosity/state.json
+curiosity/prefs.json
+curiosity/share-queue.db
+curiosity/news-links.json
+curiosity/news-digest.md
+curiosity/system-activity.log
+curiosity/patrol.log
+curiosity/semantic.log
+curiosity/watchdog.log
+curiosity/dopamine-log.md
+curiosity/topic-rotation.json
+curiosity/topics.md
+curiosity/channels.json
+share-queue.db
+
+# ===== 內部系統 =====
+agent-drive/
+.openclaw/
+.clawhub/
+config/
+logs/
+media/
+avatars/
+investments/
+investment-framework.md
+openclaw-workspace-state.json
+PLAN-desire-drive.md
+
+# ===== 憑證 / 環境變數 =====
+.env
+.env.*
+*.key
+*.pem
+openclaw.json
+
+# ===== 暫存 / 備份 / 系統 =====
+*.bak
+*.bak-*
+*.tmp
+tmp-*
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+
+# ===== 內部計劃文件（唔入 public repo）=====
+PURPOSE.md
+INVENTORY.md
+進度.md
+流程圖.md
