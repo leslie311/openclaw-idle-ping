@@ -84,13 +84,13 @@ else
   say "建立五個 cron job（gate / send / pause / heartbeat / watchdog；用 declaration-key 確保冪等，重跑唔會重複）..."
 
   # 4a. idle-ping-gate — 每 N 分鐘 command payload（零 model 成本；間隔由 IDLE_PING_ROLL_EVERY 控制）
-  GATE_CMD="openclaw cron add --name idle-ping-gate --declaration-key idle-ping-gate --every '${IDLE_PING_ROLL_EVERY:-1m}' --command 'bash $WS/scripts/idle-ping-gate.sh' --json"
+  GATE_CMD="openclaw cron add --name idle-ping-gate --declaration-key idle-ping-gate --every '${IDLE_PING_ROLL_EVERY:-1m}' --command 'bash $WS/scripts/idle-ping-gate.sh' --no-deliver --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $GATE_CMD"
   else
     GATE_OUT="$(eval "$GATE_CMD" 2>/dev/null)"
     GATE_ID="$(printf '%s' "$GATE_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$GATE_ID" ]; then
       say "gate job ID: $GATE_ID"
@@ -102,14 +102,14 @@ except Exception: print("")' 2>/dev/null)"
   # 4b. idle-ping-send — agentTurn，disabled（由 gate trigger），600s
   # shellcheck disable=SC2034  # SEND_PROMPT is expanded inside SEND_CMD's eval below
   SEND_PROMPT="$(sed -e "s|{{WORKSPACE}}|$WS|g" -e "s|{{SESSIONS_JSON}}|$SESSIONS_JSON|g" "$SCRIPT_DIR/templates/send-job-prompt.txt")"
-  SEND_CMD="openclaw cron add --name idle-ping-send --declaration-key idle-ping-send --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 600 --light-context --disabled --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$SEND_PROMPT\" --json"
+  SEND_CMD="openclaw cron add --name idle-ping-send --declaration-key idle-ping-send --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 600 --light-context --disabled --keep-after-run --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$SEND_PROMPT\" --json"
   [ -n "$MODEL" ] && SEND_CMD="openclaw cron add --name idle-ping-send --declaration-key idle-ping-send --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 600 --light-context --disabled --model '$MODEL' --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$SEND_PROMPT\" --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $SEND_CMD"
   else
     SEND_OUT="$(eval "$SEND_CMD" 2>/dev/null)"
     SEND_ID="$(printf '%s' "$SEND_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$SEND_ID" ]; then
       say "send job ID: $SEND_ID"
@@ -127,7 +127,7 @@ except Exception: print("")' 2>/dev/null)"
   else
     PAUSE_OUT="$(eval "$PAUSE_CMD" 2>/dev/null)"
     PAUSE_ID="$(printf '%s' "$PAUSE_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$PAUSE_ID" ]; then
       say "pause job ID: $PAUSE_ID"
@@ -139,13 +139,13 @@ except Exception: print("")' 2>/dev/null)"
   # 4d. idle-ping-heartbeat — production 監察心跳（每 10 分鐘 command payload，零 model 成本）
   #      更新心跳檔 + 可選 ping 外部監察服務（Healthchecks.io 等）
   HB_EVERY="${IDLE_PING_HEARTBEAT_EVERY:-10m}"
-  HB_CMD="openclaw cron add --name idle-ping-heartbeat --declaration-key idle-ping-heartbeat --every '$HB_EVERY' --command 'bash $WS/scripts/heartbeat.sh' --json"
+  HB_CMD="openclaw cron add --name idle-ping-heartbeat --declaration-key idle-ping-heartbeat --every '$HB_EVERY' --command 'bash $WS/scripts/heartbeat.sh' --no-deliver --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $HB_CMD"
   else
     HB_OUT="$(eval "$HB_CMD" 2>/dev/null)"
     HB_ID="$(printf '%s' "$HB_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$HB_ID" ]; then
       say "heartbeat job ID: $HB_ID"
@@ -156,13 +156,13 @@ except Exception: print("")' 2>/dev/null)"
 
   # 4e. idle-ping-watchdog — 心跳過期偵測（每 1 小時，偵測 cron 靜靜雞死）
   WD_EVERY="${IDLE_PING_WATCHDOG_EVERY:-1h}"
-  WD_CMD="openclaw cron add --name idle-ping-watchdog --declaration-key idle-ping-watchdog --every '$WD_EVERY' --command 'bash $WS/scripts/watchdog.sh' --json"
+  WD_CMD="openclaw cron add --name idle-ping-watchdog --declaration-key idle-ping-watchdog --every '$WD_EVERY' --command 'bash $WS/scripts/watchdog.sh' --no-deliver --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $WD_CMD"
   else
     WD_OUT="$(eval "$WD_CMD" 2>/dev/null)"
     WD_ID="$(printf '%s' "$WD_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$WD_ID" ]; then
       say "watchdog job ID: $WD_ID"
@@ -174,13 +174,13 @@ except Exception: print("")' 2>/dev/null)"
   # 4f. idle-ping-crawler — 內容生產鏈：每小時主題爬蟲（command payload，零 model 成本）
   #      讀 topic-rotation.json 攞當前主題 → 全部主題可搜渠道搜（news 中英 + arxiv + reddit）
   #      → Ollama 歸納 → share-queue 入倉（channel=topic）→ index+1
-  CRAWLER_CMD="openclaw cron add --name idle-ping-crawler --declaration-key idle-ping-crawler --cron '15 * * * *' --tz '${IDLE_PING_TZ:-Asia/Hong_Kong}' --command 'python3 $WS/scripts/semantic-patrol.py --mode rotation' --command-env 'IDLE_PING_WS=$WS' --json"
+  CRAWLER_CMD="openclaw cron add --name idle-ping-crawler --declaration-key idle-ping-crawler --cron '15 * * * *' --tz '${IDLE_PING_TZ:-Asia/Hong_Kong}' --command 'python3 $WS/scripts/semantic-patrol.py --mode rotation' --command-env 'IDLE_PING_WS=$WS' --no-deliver --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $CRAWLER_CMD"
   else
     CRAWLER_OUT="$(eval "$CRAWLER_CMD" 2>/dev/null)"
     CRAWLER_ID="$(printf '%s' "$CRAWLER_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$CRAWLER_ID" ]; then
       say "crawler job ID: $CRAWLER_ID"
@@ -200,7 +200,7 @@ except Exception: print("")' 2>/dev/null)"
   else
     TF_OUT="$(eval "$TF_CMD" 2>/dev/null)"
     TF_ID="$(printf '%s' "$TF_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$TF_ID" ]; then
       say "topic-factory job ID: $TF_ID"
@@ -220,7 +220,7 @@ except Exception: print("")' 2>/dev/null)"
   else
     DE_OUT="$(eval "$DE_CMD" 2>/dev/null)"
     DE_ID="$(printf '%s' "$DE_OUT" | python3 -c 'import json,sys
-try: print(json.load(sys.stdin).get("id",""))
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
 except Exception: print("")' 2>/dev/null)"
     if [ -n "$DE_ID" ]; then
       say "deep-explore job ID: $DE_ID"
