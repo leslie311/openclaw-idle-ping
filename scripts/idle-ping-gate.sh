@@ -183,12 +183,18 @@ if [ "$RESULT" = "PAUSE" ]; then
   # 風格輪盤：由 IDLE_PING_PAUSE_STYLES 逗號分隔清單 4 揀 1（預設：月光詩意/貼心關心/幽默玩味/自嘲）
   if [ -n "$PAUSE_JOB_ID" ]; then
     NOTICED=$(python3 - "$STATE_JSON" "$PAUSE_STYLES" <<'PY'
-import json, sys, random
+import json, sys, random, time
 p, styles_str = sys.argv[1], sys.argv[2]
 styles = [x.strip() for x in styles_str.split(',') if x.strip()]
 s = json.load(open(p))
-if not s.get('pauseNoticeSent'):
+# 2026-08-28 修：改用 timestamp 比較（lastPauseNoticeAt vs lastShipAt）而唔靠 bool flag
+# —— 舊版靠 pauseNoticeSent flag，如果 RESET 分支 crash（例如 import 漏咗 time 嘅 NameError）flag 會卡死 true，之後永遠唔再 send
+now = int(time.time()*1000)
+last_notice = s.get('lastPauseNoticeAt', 0) or 0
+last_ship = s.get('lastShipAt', 0) or s.get('lastPingTriggerAt', 0) or 0
+if last_notice < last_ship:
     s['pauseNoticeSent'] = True
+    s['lastPauseNoticeAt'] = now
     s['pauseNoticeStyle'] = random.choice(styles)
     json.dump(s, open(p, 'w'), ensure_ascii=False, indent=2)
     print(0)
