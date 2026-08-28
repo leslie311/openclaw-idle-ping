@@ -81,6 +81,18 @@ The gate costs **zero model tokens** (pure bash + a tiny Python read). Model cos
 
 ---
 
+## Conversation Continuity by Design
+
+At idle-ping, we believe **proactive messages should never hijack the user's own conversation thread.**
+
+We understand that real life happens: a user may ask a question, step away, and return hours later — by which time the AI has shared several interesting discoveries in the meantime. When that user comes back, **they most likely want to continue where they left off**, not to be pulled into a conversation the AI started in their absence.
+
+That is why idle-ping deliveries are designed as **one-way broadcasts from an isolated session**: they appear in the chat as gentle, optional moments of discovery — but they **never enter the main conversation context**. When the user replies, the assistant always continues the *user's own thread*. The conversation belongs to the user, not to the ping.
+
+**Design principle: the user's voice always wins the thread.** Proactive content enriches the chat; it never owns it.
+
+---
+
 ## Prerequisites
 
 - [OpenClaw](https://openclaw.ai) installed and running (Gateway)
