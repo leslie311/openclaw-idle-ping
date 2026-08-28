@@ -101,7 +101,7 @@ except Exception: print("")' 2>/dev/null)"
 
   # 4b. idle-ping-send — agentTurn，disabled（由 gate trigger），600s
   # shellcheck disable=SC2034  # SEND_PROMPT is expanded inside SEND_CMD's eval below
-  SEND_PROMPT="$(sed "s|{{WORKSPACE}}|$WS|g" "$SCRIPT_DIR/templates/send-job-prompt.txt")"
+  SEND_PROMPT="$(sed -e "s|{{WORKSPACE}}|$WS|g" -e "s|{{SESSIONS_JSON}}|$SESSIONS_JSON|g" "$SCRIPT_DIR/templates/send-job-prompt.txt")"
   SEND_CMD="openclaw cron add --name idle-ping-send --declaration-key idle-ping-send --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 600 --light-context --disabled --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$SEND_PROMPT\" --json"
   [ -n "$MODEL" ] && SEND_CMD="openclaw cron add --name idle-ping-send --declaration-key idle-ping-send --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 600 --light-context --disabled --model '$MODEL' --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$SEND_PROMPT\" --json"
   if [ "$DRY" = "1" ]; then
