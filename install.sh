@@ -121,7 +121,7 @@ except Exception: print("")' 2>/dev/null)"
   # 4c. idle-ping-pause-notice — agentTurn，disabled（由 gate trigger），300s
   # shellcheck disable=SC2034  # PAUSE_PROMPT is expanded inside PAUSE_CMD's eval below
   PAUSE_PROMPT="$(sed "s|{{WORKSPACE}}|$WS|g" "$SCRIPT_DIR/templates/pause-job-prompt.txt")"
-  PAUSE_CMD="openclaw cron add --name idle-ping-pause-notice --declaration-key idle-ping-pause-notice --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 300 --light-context --disabled --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$PAUSE_PROMPT\" --json"
+  PAUSE_CMD="openclaw cron add --name idle-ping-pause-notice --declaration-key idle-ping-pause-notice --at 2036-01-01T00:00:00Z --session isolated --timeout-seconds 300 --light-context --disabled --keep-after-run --announce --channel telegram --to '$TELEGRAM_ID' --message \"\$PAUSE_PROMPT\" --json"
   if [ "$DRY" = "1" ]; then
     echo "   [dry-run] $PAUSE_CMD"
   else
