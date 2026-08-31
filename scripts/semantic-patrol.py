@@ -722,14 +722,16 @@ def run_auto_mode(now, now_iso, today, state):
             if not name or not points:
                 continue
             summary_text = points[0]
-            link = ""
+            link, title = "", ""
             for t, l in items:
                 if l and (name in t or summary_text[:20] in t):
-                    link = l
+                    link, title = l, t
                     break
             cmd = [sys.executable, os.path.join(BASE, "scripts", "share-queue.py"), "add",
                    "--topic", f"[{chan}] {name}", "--summary", summary_text,
                    "--cat", name, "--channel", chan]
+            if title:
+                cmd += ["--title", title]
             if link:
                 cmd += ["--link", link]
             try:
@@ -847,14 +849,16 @@ def crawl_bonus_channels(now, now_iso, state):
             if not name or not points:
                 continue
             summary_text = points[0]
-            link = ""
+            link, title = "", ""
             for t, l in items:
                 if l and (name in t or summary_text[:20] in t):
-                    link = l
+                    link, title = l, t
                     break
             cmd = [sys.executable, os.path.join(BASE, "scripts", "share-queue.py"), "add",
                    "--topic", f"[{chan}] {name}", "--summary", summary_text,
                    "--cat", name, "--channel", chan]
+            if title:
+                cmd += ["--title", title]
             if link:
                 cmd += ["--link", link]
             try:

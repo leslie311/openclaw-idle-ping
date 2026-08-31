@@ -229,6 +229,24 @@ except Exception: print("")' 2>/dev/null)"
     fi
   fi
 
+  # 4i. idle-ping-scan — 倉庫健康檢查（每日 04:30，純 command，零 model 成本）
+  #      share-queue.py scan：dry-run 報告；發現重複自動 tidy 清理（TTL 30 日 + 遺留重複收埋）
+  #      異常（>20 個問題）自動寫 system-activity.log
+  SCAN_CMD="openclaw cron add --name idle-ping-scan --declaration-key idle-ping-scan --cron '30 4 * * *' --tz '${IDLE_PING_TZ:-Asia/Hong_Kong}' --command 'python3 $WS/scripts/share-queue.py scan --fix --max-age 30' --command-env 'IDLE_PING_WS=$WS' --no-deliver --json"
+  if [ "$DRY" = "1" ]; then
+    echo "   [dry-run] $SCAN_CMD"
+  else
+    SCAN_OUT="$(eval "$SCAN_CMD" 2>/dev/null)"
+    SCAN_ID="$(printf '%s' "$SCAN_OUT" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("job",{}).get("id",""))
+except Exception: print("")' 2>/dev/null)"
+    if [ -n "$SCAN_ID" ]; then
+      say "scan job ID: $SCAN_ID"
+    else
+      warn "scan job 建立失敗/攞唔到 ID"
+    fi
+  fi
+
   # === 5. 寫 idle-ping.env（gate script 會讀呢個檔）===
   if [ -f "$WS/scripts/idle-ping.env" ]; then
     say "skip（已存在）: $WS/scripts/idle-ping.env"

@@ -75,6 +75,7 @@ The gate costs **zero model tokens** (pure bash + a tiny Python read). Model cos
 - **Dice-controlled density** — no fixed schedule, naturally irregular timing
 - **Streak-based pause** — 3 unanswered shipments → auto-pause + a gentle notice; any reply from you resets it
 - **DB-first shipping** — a share queue (`share-queue.db`) decouples "finding stuff" (cheap crawler) from "sending stuff" (agent taste)
+- **Mechanical dedup (v1.1.0)** — `add()` blocks duplicates at ingestion (exact hash → canonical link → raw-title hash → similarity), `pick` ships only fresh items, and a daily `scan --fix` health check keeps the queue clean — all pure Python, zero LLM tokens
 - **Self-stocking pipeline** — nightly topic factory + hourly crawler keep the queue full, exactly like the original system it was extracted from
 - **Persona-ready** — reads `SOUL.md` / `IDENTITY.md` if present, else uses a natural default tone
 - **Zero personal data in the repo** — see [Privacy](#privacy)

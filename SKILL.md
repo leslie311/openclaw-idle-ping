@@ -1,7 +1,7 @@
 ---
 name: Idle Ping — Proactive Outreach System
 slug: idle-ping
-version: 1.0.0
+version: 1.1.0
 description: Install a complete proactive outreach system — idle detection, randomized dice delivery, topic-driven crawler, share queue, and persona-based messages. Use when the user wants the agent to proactively reach out with interesting content during idle time.
 metadata:
   clawdbot:
