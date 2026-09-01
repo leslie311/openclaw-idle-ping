@@ -101,6 +101,7 @@ if streak >= pause_after + 1:
         last_ship = 0
     if last_msg > last_ship:
         s['pingStreak'] = 0
+        s['gateStreak'] = 0
         s['pauseNoticeSent'] = False
         json.dump(s, open(p, 'w'), ensure_ascii=False, indent=2)
         print("RESET")  # 已重開，繼續
@@ -147,28 +148,41 @@ fi
 #      - 冇覆 → streak 保持累計
 #      - streak >= PAUSE_AFTER（已出 N 次貨都冇回應）→ 收骰仔（PAUSE，唔出貨），streak 設 PAUSE_AFTER+1（暫停狀態）
 #      - 否則 → 出貨（SHIP）：lastPingTriggerAt = now, streak += 1
-RESULT=$(python3 - "$STATE_JSON" "$LAST_MSG" "$PAUSE_AFTER" "$DAILY_CAP" "$TODAY" <<'PY'
+RESULT=$(python3 - "$STATE_JSON" "$LAST_MSG" "$PAUSE_AFTER" "$DAILY_CAP" "$TODAY" "${IDLE_PING_LOG:-$WS/curiosity/system-activity.log}" <<'PY'
 import json, sys, time
 p, last_msg = sys.argv[1], int(sys.argv[2])
 pause_after = int(sys.argv[3])
 daily_cap = int(sys.argv[4])
 today = sys.argv[5]
+warn_log = sys.argv[6]
 s = json.load(open(p))
 last_ship = s.get('lastShipAt', 0) or s.get('lastPingTriggerAt', 0) or 0
 now = int(time.time()*1000)
 if last_ship > now + 300000:
     last_ship = 0
 streak = s.get('pingStreak', 0) or 0
+# 2026-09-01 防護：偵測 pingStreak 倒退（idle-ping-send 曾用舊快照覆蓋 state，令 16:59 錯誤重新計數）
+gate_streak = s.get('gateStreak', 0) or 0
+if streak < gate_streak:
+    try:
+        with open(warn_log, 'a') as _f:
+            _ts = time.strftime('%Y-%m-%d %H:%M:%S')
+            _f.write(f"{_ts} | ⚠️ gate 偵測 pingStreak 倒退（{gate_streak}→{streak}）——疑似出貨 agent 覆蓋 state，已重置 gateStreak\n")
+    except Exception:
+        pass
+    gate_streak = streak  # 以現值為準，避免下次重複誤報
 if last_msg > last_ship:
     streak = 0
 if streak >= pause_after:
     s['pingStreak'] = pause_after + 1
+    s['gateStreak'] = pause_after + 1
     json.dump(s, open(p, 'w'), ensure_ascii=False, indent=2)
     print("PAUSE")
 else:
     s['lastPingTriggerAt'] = int(time.time()*1000)
     s['lastShipAt'] = s['lastPingTriggerAt']
     s['pingStreak'] = streak + 1
+    s['gateStreak'] = streak + 1
     if daily_cap > 0:
         s['dailyCount'] = s.get('dailyCount', 0) if s.get('dailyDate') == today else 0
         s['dailyCount'] += 1
@@ -182,11 +196,19 @@ if [ "$RESULT" = "PAUSE" ]; then
   # 收骰仔：send「知你忙」通知（一次，唔重複）
   # 風格輪盤：由 IDLE_PING_PAUSE_STYLES 逗號分隔清單 4 揀 1（預設：月光詩意/貼心關心/幽默玩味/自嘲）
   if [ -n "$PAUSE_JOB_ID" ]; then
-    NOTICED=$(python3 - "$STATE_JSON" "$PAUSE_STYLES" <<'PY'
+    NOTICED=$(python3 - "$STATE_JSON" "$PAUSE_STYLES" <<'PY' 2>>"$WS/curiosity/pause-notice-errors.log" || echo "PYERR"
 import json, sys, random, time
 p, styles_str = sys.argv[1], sys.argv[2]
 styles = [x.strip() for x in styles_str.split(',') if x.strip()]
-s = json.load(open(p))
+# 2026-09-01 修：json read 加 retry（防 concurrent write 讀到半截 → NOTICED 空 → 靜音收骰仔）
+for _ in range(3):
+    try:
+        s = json.load(open(p))
+        break
+    except Exception:
+        time.sleep(0.2)
+else:
+    raise SystemExit("state read failed after retries")
 # 2026-08-28 修：改用 timestamp 比較（lastPauseNoticeAt vs lastShipAt）而唔靠 bool flag
 # —— 舊版靠 pauseNoticeSent flag，如果 RESET 分支 crash（例如 import 漏咗 time 嘅 NameError）flag 會卡死 true，之後永遠唔再 send
 now = int(time.time()*1000)
@@ -205,7 +227,11 @@ PY
     if [ "$NOTICED" = "0" ]; then
       bash "$SYSLOG" "🛑 收骰仔（連續 $((PAUSE_AFTER+1)) 次冇回應）→ send 知你忙通知"
       openclaw cron run "$PAUSE_JOB_ID" >/dev/null 2>&1
+    else
+      bash "$SYSLOG" "⚠️ 收骰仔（連續 $((PAUSE_AFTER+1)) 次冇回應）——通知跳過（NOTICED=$NOTICED）"
     fi
+  else
+    bash "$SYSLOG" "⚠️ 收骰仔（連續 $((PAUSE_AFTER+1)) 次冇回應）——PAUSE_JOB_ID 未設定，通知發唔到"
   fi
   echo "NO_REPLY"; exit 0
 fi

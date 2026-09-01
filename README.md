@@ -143,7 +143,7 @@ Everything lives in `scripts/idle-ping.env` (auto-generated on install; see `idl
 
 Tunables in `curiosity/`:
 
-- `state.json` — `pingStreak`, `lastPingTriggerAt`, `lastShipAt`, `pauseNoticeSent`, `pauseNoticeStyle`
+- `state.json` — `pingStreak`, `gateStreak`, `lastPingTriggerAt`, `lastShipAt`, `pauseNoticeSent`, `pauseNoticeStyle`（gate 獨佔寫入；出貨 LLM 只准經 `idle-ping-note.py` 更新 `lastTopics`/`currentTopic`）
 - `channels.json` — content-channel weights (topic / news / onthisday / misconceptions / randomwiki / deep / arxiv / reddit / xsearch)
 - `topic-rotation.json` — exploration topic rotation list
 
@@ -188,6 +188,10 @@ shellcheck scripts/*.sh install.sh
 #    Install bats-core: https://github.com/bats-core/bats-core
 bats tests/
 # → 12 tests: idle / lock / paused / reset / ship / pause / config overrides
+
+# 3. Sandbox regression suite (v1.2.0)
+bash scripts/test-idle-ping.sh
+# → 16 cases: SHIP / PAUSE / RESET / lock / silent / idle / dedupe / bookkeeping guard
 ```
 
 The test suite mocks external commands (fake `shuf` forces dice wins, fake

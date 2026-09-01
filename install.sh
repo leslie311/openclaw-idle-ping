@@ -56,7 +56,7 @@ say "workspace: $WS"
 
 # === 2. 複製 scripts ===
 mkdir -p "$WS/scripts"
-for f in idle-ping-gate.sh system-log.sh share-queue.py semantic-patrol.py topic-factory.py heartbeat.sh watchdog.sh; do
+for f in idle-ping-gate.sh system-log.sh idle-ping-note.py share-queue.py semantic-patrol.py topic-factory.py heartbeat.sh watchdog.sh; do
   if [ -f "$SCRIPT_DIR/scripts/$f" ]; then
     run "cp '$SCRIPT_DIR/scripts/$f' '$WS/scripts/$f'"
   else
