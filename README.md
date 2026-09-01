@@ -192,6 +192,11 @@ bats tests/
 # 3. Sandbox regression suite (v1.2.0)
 bash scripts/test-idle-ping.sh
 # → 16 cases: SHIP / PAUSE / RESET / lock / silent / idle / dedupe / bookkeeping guard
+
+# 4. Sync integrity check (v1.2.0)
+bash scripts/sync-verify.sh
+# → verifies local workspace scripts match the repo (sanitize-aware:
+#   Telegram ID / username paths are normalized before comparing)
 ```
 
 The test suite mocks external commands (fake `shuf` forces dice wins, fake

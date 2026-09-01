@@ -27,7 +27,7 @@ metadata:
 
 1. **安裝**：`bash install.sh`——需要 `TELEGRAM_ID` 環境變數指定 delivery target；可選 `MODEL`、`IDLE_PING_WS` 等（見 `scripts/idle-ping.env.example`）
 2. **安裝後**：install.sh 自動建立全部 cron jobs——gate（每分鐘擲骰）、crawler（每小時探索）、topic-factory（每晚補主題）、deep-explore（凌晨深度探索）、send/pause（gate 觸發）
-3. **驗證**：`bash ci-local.sh` 跑本地檢查；`tests/` 有 bats 測試（gate 邏輯、監控）
+3. **驗證**：`bash ci-local.sh` 跑本地檢查；`tests/` 有 bats 測試（gate 邏輯、監控）；`scripts/test-idle-ping.sh` 係 sandbox 回歸測試台；`scripts/sync-verify.sh` 驗證本地 vs repo 版本一致（sanitize-aware）
 4. **私隱**：runtime data（sessions.json、share-queue.db、state.json、cache/）一律唔 commit；路徑全部用 `$HOME`/`~` 或佔位符（`{{WORKSPACE}}`/`{{SESSIONS_JSON}}`），安裝時先替換
 5. **Persona**：send/pause prompt 會嘗試讀 `SOUL.md`/`IDENTITY.md` 等 persona 文件——有就用人格語氣，冇就用預設語氣；系統本身 persona-agnostic
 6. **機制**：探索（crawler/深度探索）同出貨（idle-ping）完全分開——出貨時機由骰仔決定，唔係固定時間表；用戶一覆 message 就 reset 計時
